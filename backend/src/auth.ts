@@ -6,7 +6,6 @@ import pool from './db';
 export const loginHandler: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password } = req.body;
-    console.log("Login attempt received:", { email });
 
     if (!email || !password) {
       res.status(400).json({ 

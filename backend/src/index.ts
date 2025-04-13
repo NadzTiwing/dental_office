@@ -1,9 +1,9 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import bcrypt from 'bcrypt';
-import pool from './db';
-import { loginHandler, checkUserExists } from './auth';
+import bcrypt from 'bcryptjs';
+import pool from './db.js';
+import { loginHandler, checkUserExists } from './auth.js';
 import { 
   registerUser,
   updateUserDetails,
@@ -15,16 +15,23 @@ import {
   deleteDentist,
   getUserAppointments,
   getAllAppointments
-} from './users';
+} from './users.js';
 
 dotenv.config();
 
 const app = express();
 
-const PORT = parseInt(process.env.PORT || '5000', 10);
+const PORT = parseInt(process.env.PORT || '3000', 10);
+
+// CORS configuration
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
 
 // Basic middleware
-app.use(cors());
 app.use(express.json());
 
 // Test endpoint
@@ -78,12 +85,28 @@ app.post('/api/add-dentist', addDentist);
 app.delete('/api/delete-dentist/:id', deleteDentist);
 app.get('/api/user-appointments/:userId', getUserAppointments);
 app.get('/api/all-appointments', getAllAppointments);
+
 // Create admin user when server starts
 createAdminIfNotExists();
 
+// Error handling middleware (moved to the end)
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error('Error:', err);
+  res.status(500).json({
+    status: 'error',
+    message: 'Internal server error',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
+
 // Start server
-const server = app.listen(PORT, 'localhost', () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Access the API at http://localhost:${PORT}`);
+  console.log(`Test endpoint: http://localhost:${PORT}/api/test`);
+}).on('error', (err) => {
+  console.error('Server error:', err);
+  process.exit(1);
 });
 
 // Error handling

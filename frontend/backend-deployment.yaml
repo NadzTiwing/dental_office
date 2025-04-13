@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: 982393866613.dkr.ecr.ap-southeast-2.amazonaws.com/backend-node-app:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+        env:
+        - name: DB_HOST
+          value: "rds-database-1.c766iiku6v45.ap-southeast-2.rds.amazonaws.com"
+        - name: DB_USER
+          value: "nadiaTiwingAdmin"
+        - name: DB_PASSWORD
+          value: "Ukitnam2020!"
+        - name: DB_NAME
+          value: "dental_clinic_db"
+        - name: DB_PORT
+          value: "3306"
+        - name: APP_PORT
+          value: "3000"
+        - name: NODE_ENV
+          value: "production"
+        - name: DB_CONNECT_TIMEOUT
+          value: "30000"
+        - name: DB_ACQUIRE_TIMEOUT
+          value: "30000"
+        - name: DB_WAIT_FOR_CONNECTIONS
+          value: "true"
+        - name: DB_CONNECTION_LIMIT
+          value: "10"
+        - name: DB_QUEUE_LIMIT
+          value: "0"
+        - name: DB_ENABLE_KEEP_ALIVE
+          value: "true"
+        - name: DB_KEEP_ALIVE_INITIAL_DELAY
+          value: "0"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        startupProbe:
+          httpGet:
+            path: /api/test
+            port: 3000
+          failureThreshold: 30
+          periodSeconds: 10
+          initialDelaySeconds: 30
+        livenessProbe:
+          httpGet:
+            path: /api/test
+            port: 3000
+          initialDelaySeconds: 60
+          periodSeconds: 15
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/test
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3

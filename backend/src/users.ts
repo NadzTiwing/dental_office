@@ -1,13 +1,14 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
-import bcrypt from 'bcrypt';
-import pool from './db';
-import { UserRegistration } from './types';
-import { DentistWithAvailability } from './types';
+import bcrypt from 'bcryptjs';
+import pool from './db.js';
+import { UserRegistration } from './types.js';
+import { DentistWithAvailability } from './types.js';
 
 // managing patients
 export const registerUser: RequestHandler = async (req, res, next): Promise<void> => {
   try {
     const { name, email, phone, password }: UserRegistration = req.body;
+    console.log('Registration attempt:', { name, email, phone });
 
     if (!name || !email || !password) {
       res.status(400).json({
@@ -26,6 +27,7 @@ export const registerUser: RequestHandler = async (req, res, next): Promise<void
       return;
     }
 
+    console.log('Checking for existing user...');
     const [existingUsers] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
     if ((existingUsers as any[]).length > 0) {
       res.status(409).json({
@@ -35,22 +37,48 @@ export const registerUser: RequestHandler = async (req, res, next): Promise<void
       return;
     }
 
+    console.log('Hashing password...');
     const hashedPassword = await bcrypt.hash(password, 10);
-    const [result] = await pool.query(
-      'INSERT INTO users (name, email, phone, password, is_admin) VALUES (?, ?, ?, ?, ?)',
-      [name, email, phone, hashedPassword, false]
-    );
+    console.log('Inserting new user...');
+    
+    try {
+      const [result] = await pool.query(
+        'INSERT INTO users (name, email, phone, password, is_admin) VALUES (?, ?, ?, ?, ?)',
+        [name, email, phone || null, hashedPassword, false]
+      );
 
-    const insertId = (result as any).insertId;
-    const [users] = await pool.query('SELECT id, name, email, phone, is_admin FROM users WHERE id = ?', [insertId]);
-    const newUser = (users as any[])[0];
+      if (!result || !(result as any).insertId) {
+        throw new Error('Failed to get insert ID');
+      }
 
-    res.status(201).json({
-      status: 'success',
-      data: newUser,
-      message: 'User registered successfully'
-    });
+      const insertId = (result as any).insertId;
+      console.log('Fetching new user...');
+      const [users] = await pool.query('SELECT id, name, email, phone, is_admin FROM users WHERE id = ?', [insertId]);
+      const newUser = (users as any[])[0];
+
+      if (!newUser) {
+        throw new Error('Failed to retrieve created user');
+      }
+
+      console.log('User registered successfully:', newUser);
+      res.status(201).json({
+        status: 'success',
+        data: newUser,
+        message: 'User registered successfully'
+      });
+    } catch (dbError: any) {
+      console.error('Database error during registration:', dbError);
+      if (dbError.code === 'ER_DUP_ENTRY') {
+        res.status(409).json({
+          status: 'error',
+          message: 'User already exists'
+        });
+        return;
+      }
+      throw dbError;
+    }
   } catch (err) {
+    console.error('Registration error:', err);
     next(err);
   }
 }; 

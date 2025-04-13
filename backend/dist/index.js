@@ -1,23 +1,22 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import bcrypt from 'bcryptjs';
 import pool from './db.js';
-import bcrypt from 'bcrypt';
-import { loginHandler } from './auth.js';
+import { loginHandler, checkUserExists } from './auth.js';
+import { registerUser, updateUserDetails, addAppointment, rescheduleAppointment, cancelAppointment, getDentists, addDentist, deleteDentist, getUserAppointments, getAllAppointments } from './users.js';
 dotenv.config();
 const app = express();
-const PORT = process.env.PORT || 5000;
-console.log('Starting server...');
-// Middleware
+const PORT = parseInt(process.env.PORT || '5000', 10);
+// Basic middleware
 app.use(cors());
 app.use(express.json());
 // Test endpoint
-// Test endpoint
 app.get('/api/test', (req, res) => {
-    console.log('Test endpoint hit at:', new Date().toISOString());
+    console.log('Test endpoint hit');
     res.json({
-        message: 'API is working!',
-        timestamp: new Date().toISOString()
+        status: 'success',
+        message: 'API is working!'
     });
 });
 // Function to create admin user if it doesn't exist
@@ -45,15 +44,37 @@ app.get('/api/db-check', async (req, res) => {
         res.status(500).json({ status: 'error', message: err.message });
     }
 });
-// Create admin user when server starts
-createAdminIfNotExists();
 // Auth routes
 app.post('/api/login', loginHandler);
+app.post('/api/check-user', checkUserExists);
+app.post('/api/register', registerUser);
+app.put('/api/update-user/:id', updateUserDetails);
+app.post('/api/add-appointment', addAppointment);
+app.put('/api/reschedule-appointment', rescheduleAppointment);
+app.put('/api/cancel-appointment', cancelAppointment);
+app.get('/api/dentists', getDentists);
+app.post('/api/add-dentist', addDentist);
+app.delete('/api/delete-dentist/:id', deleteDentist);
+app.get('/api/user-appointments/:userId', getUserAppointments);
+app.get('/api/all-appointments', getAllAppointments);
+// Create admin user when server starts
+createAdminIfNotExists();
 // Start server
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-    console.log('Available endpoints:');
-    console.log('- GET  /api/test');
-    console.log('- GET  /api/db-check');
-    console.log('- POST /api/login');
+const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Access the API at http://localhost:${PORT}`);
+    console.log(`Test endpoint: http://localhost:${PORT}/api/test`);
+}).on('error', (err) => {
+    console.error('Server error:', err);
+    process.exit(1);
 });
+// Error handling
+process.on('uncaughtException', (err) => {
+    console.error('\n=== UNCAUGHT EXCEPTION ===', err);
+    server.close(() => process.exit(1));
+});
+process.on('unhandledRejection', (err) => {
+    console.error('\n=== UNHANDLED REJECTION ===', err);
+    server.close(() => process.exit(1));
+});
+//# sourceMappingURL=index.js.map

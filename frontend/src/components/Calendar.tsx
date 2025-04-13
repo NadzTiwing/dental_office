@@ -141,7 +141,7 @@ export default function Calendar({ selectedDentist, dentists, onDateSelect }: Ca
           </div>
 
           <div className="mt-2 grid grid-cols-7 gap-px bg-gray-200 text-sm shadow ring-1 ring-gray-200">
-            {generateCalendarDays().map((day, index) => {
+            {generateCalendarDays().map((day) => {
               const isToday = day.date.toDateString() === new Date().toDateString();
               const dateString = day.date.toISOString().split('T')[0];
               const isPastDate = day.date < minDate;

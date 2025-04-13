@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
-import bcrypt from 'bcrypt';
-import pool from './db';
+import bcrypt from 'bcryptjs';
+import pool from './db.js';
 
 // Login endpoint to authenticate users
 export const loginHandler: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
